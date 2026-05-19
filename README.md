@@ -37,12 +37,23 @@ CLI에서는 토큰 사용량·한도를 한눈에 보기 어렵습니다. AI Us
 ## 메뉴 막대 조작
 
 - **좌클릭** — 상세 팝오버 열기
-- **우클릭** — 메뉴:
-  - 사용량 보기 / 지금 새로고침 / Claude.ai 로그인
-  - **메뉴 막대 표시** — 5시간 / 주간 중 무엇을 보일지
-  - **표시할 도구** — Claude·Codex 모두 / Claude만 / Codex만
-  - **갱신 주기** — 10초 / 30초 / 1분 / 5분 / 10분
-  - 로그인 시 자동 실행 / AI Usage 정보 / 종료
+- **우클릭** — 아래 메뉴가 열립니다
+
+<p align="center">
+  <img src="menu.png" width="220" alt="우클릭 메뉴">
+</p>
+
+| 메뉴 | 설명 |
+|------|------|
+| 사용량 보기 | 상세 팝오버를 엽니다 |
+| 지금 새로고침 | Claude·Codex 한도를 즉시 다시 불러옵니다 |
+| Claude.ai 로그인 | claude.ai 로그인 창을 엽니다 (세션 만료 시 등) |
+| 메뉴 막대 표시 ▸ | 메뉴 막대에 **5시간** / **주간** 중 무엇을 보일지 |
+| 표시할 도구 ▸ | **Claude·Codex 모두** / **Claude만** / **Codex만** |
+| 갱신 주기 ▸ | 자동 갱신 간격 — 10초 / 30초 / 1분 / 5분 / 10분 |
+| 로그인 시 자동 실행 | 부팅 시 앱을 자동으로 시작 |
+| AI Usage 정보 | 버전 정보 |
+| 종료 | 앱 종료 |
 
 ## 빌드 & 실행
 
@@ -53,6 +64,17 @@ cd "Usage App"
 ./build-app.sh --install          # 빌드 후 /Applications 에 설치
 open "/Applications/AI Usage.app"
 ```
+
+## 배포 (.dmg)
+
+```sh
+./make-dmg.sh                     # "AI Usage.dmg" 생성
+```
+
+GitHub Release 등에 올릴 디스크 이미지를 만듭니다. 단, 앱은 ad-hoc 서명
+상태라 — 내려받아 처음 열면 macOS Gatekeeper 경고가 뜹니다. **우클릭 → "열기"**
+로 한 번 허용하면 됩니다. 경고 없이 배포하려면 Apple Developer 계정으로
+Developer ID 서명 + 공증(notarization)이 필요합니다.
 
 ## 갱신 주기
 

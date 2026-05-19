@@ -15,17 +15,17 @@ enum ClaudePlan: String, CaseIterable {
     /// Estimated 5-hour spend budget in USD — calibrated against Claude's panel.
     var fiveHourBudget: Double {
         switch self {
-        case .pro:    return 53
-        case .max5x:  return 265
-        case .max20x: return 1060
+        case .pro:    return 72
+        case .max5x:  return 360
+        case .max20x: return 1440
         }
     }
     /// Estimated weekly spend budget in USD — calibrated against Claude's panel.
     var weeklyBudget: Double {
         switch self {
-        case .pro:    return 144
-        case .max5x:  return 720
-        case .max20x: return 2880
+        case .pro:    return 181
+        case .max5x:  return 906
+        case .max20x: return 3624
         }
     }
 }
@@ -148,18 +148,19 @@ final class UsageStore: ObservableObject {
 
     private func claudeFiveHour(_ sorted: [UsageEvent]) -> LimitWindow {
         let blockLength: TimeInterval = 5 * 3600
-        // Walk events; a new 5-hour block starts whenever an event lands
-        // outside the current block (Claude's session-window behaviour).
+        // Claude's session window starts at the block's first message, floored
+        // to the nearest 10 minutes, and runs 5 hours. Once it elapses the
+        // window stays at 0% until the next message starts a fresh block.
         var blockStart: Date?
-        for e in sorted {
-            if let bs = blockStart, e.date < bs.addingTimeInterval(blockLength) { continue }
-            blockStart = e.date
+        for t in claude.activityDates.sorted() {
+            if let bs = blockStart, t < bs.addingTimeInterval(blockLength) { continue }
+            blockStart = UsageStore.floor10Minutes(t)
         }
         guard let bs = blockStart else {
             return LimitWindow(kind: .fiveHour, usedPercent: 0, resetsAt: nil, isReal: false)
         }
         let blockEnd = bs.addingTimeInterval(blockLength)
-        if Date() >= blockEnd {   // last block already elapsed
+        if Date() >= blockEnd {   // window elapsed — 0% until next use
             return LimitWindow(kind: .fiveHour, usedPercent: 0, resetsAt: nil, isReal: false)
         }
         let cost = sorted.filter { $0.date >= bs }.reduce(0) { $0 + $1.cost }
@@ -167,6 +168,12 @@ final class UsageStore: ObservableObject {
         return LimitWindow(kind: .fiveHour,
                            usedPercent: budget > 0 ? cost / budget * 100 : 0,
                            resetsAt: blockEnd, isReal: false)
+    }
+
+    /// Floors a date down to the nearest 10-minute boundary.
+    static func floor10Minutes(_ date: Date) -> Date {
+        let t = date.timeIntervalSince1970
+        return Date(timeIntervalSince1970: (t / 600).rounded(.down) * 600)
     }
 
     private func claudeWeekly(_ sorted: [UsageEvent]) -> LimitWindow {

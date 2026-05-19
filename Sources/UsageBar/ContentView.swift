@@ -32,7 +32,6 @@ struct ContentView: View {
             claudeCard
             codexCard
             chartSection
-            footer
         }
         .padding(14)
         .frame(width: 320)
@@ -146,13 +145,6 @@ struct ContentView: View {
 
     // MARK: Footer
 
-    private var footer: some View {
-        HStack {
-            Text("Codex 실시간 · Claude 추정 · 우클릭으로 설정")
-                .font(.caption2).foregroundStyle(.tertiary)
-            Spacer()
-        }
-    }
 }
 
 /// One tool card: name + badge + two limit windows (5시간 / 주간).
@@ -240,28 +232,29 @@ struct GaugeBar: View {
     }
 }
 
-/// 14-day grouped bar chart. Hovering a day's column reports it via `hovered`.
+/// 14-day grouped bar chart. Bars sit on a shared baseline; hovering a day's
+/// column reports it via `hovered`.
 struct DailyBarChart: View {
     let bars: [DayBar]
     @Binding var hovered: DayBar?
-    private let height: CGFloat = 56
+    private let height: CGFloat = 58
 
     var body: some View {
         let maxCost = max(bars.map { max($0.claudeCost, $0.codexCost) }.max() ?? 0, 0.01)
         HStack(alignment: .bottom, spacing: 3) {
             ForEach(bars) { day in
-                ZStack(alignment: .bottom) {
-                    if hovered?.day == day.day {
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(Color.primary.opacity(0.08))
-                    }
+                VStack(spacing: 0) {
+                    Spacer(minLength: 0)
                     HStack(alignment: .bottom, spacing: 2) {
                         bar(day.claudeCost / maxCost, Theme.claude)
                         bar(day.codexCost / maxCost, Theme.codex)
                     }
-                    .padding(.bottom, 3)
                 }
-                .frame(width: 18, height: height + 6)
+                .frame(width: 18, height: height)
+                .background(
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(hovered?.day == day.day ? Color.primary.opacity(0.10) : Color.clear)
+                )
                 .contentShape(Rectangle())
                 .onHover { inside in
                     if inside { hovered = day }
@@ -269,12 +262,12 @@ struct DailyBarChart: View {
                 }
             }
         }
-        .frame(height: height + 6, alignment: .bottom)
+        .frame(height: height, alignment: .bottom)
     }
 
     private func bar(_ fraction: Double, _ color: Color) -> some View {
         RoundedRectangle(cornerRadius: 1.5)
             .fill(color)
-            .frame(width: 6, height: max(2, CGFloat(fraction) * height))
+            .frame(width: 6, height: max(2, CGFloat(min(max(fraction, 0), 1)) * height))
     }
 }

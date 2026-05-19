@@ -1,0 +1,73 @@
+{
+  "": {
+    "dependencies": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/AIUsage.d",
+    "object": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/AIUsage.o",
+    "swift-dependencies": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/primary.swiftdeps"
+  },
+  "/Users/jun/Usage App/Sources/UsageBar/AppDelegate.swift": {
+    "object": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/AppDelegate.swift.o",
+    "swiftmodule": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/AppDelegate~partial.swiftmodule",
+    "swift-dependencies": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/AppDelegate.swiftdeps",
+    "diagnostics": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/AppDelegate.dia"
+  },
+  "/Users/jun/Usage App/Sources/UsageBar/ClaudeUsage.swift": {
+    "object": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/ClaudeUsage.swift.o",
+    "swiftmodule": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/ClaudeUsage~partial.swiftmodule",
+    "swift-dependencies": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/ClaudeUsage.swiftdeps",
+    "diagnostics": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/ClaudeUsage.dia"
+  },
+  "/Users/jun/Usage App/Sources/UsageBar/CodexAppServer.swift": {
+    "object": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/CodexAppServer.swift.o",
+    "swiftmodule": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/CodexAppServer~partial.swiftmodule",
+    "swift-dependencies": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/CodexAppServer.swiftdeps",
+    "diagnostics": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/CodexAppServer.dia"
+  },
+  "/Users/jun/Usage App/Sources/UsageBar/CodexUsage.swift": {
+    "object": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/CodexUsage.swift.o",
+    "swiftmodule": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/CodexUsage~partial.swiftmodule",
+    "swift-dependencies": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/CodexUsage.swiftdeps",
+    "diagnostics": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/CodexUsage.dia"
+  },
+  "/Users/jun/Usage App/Sources/UsageBar/ContentView.swift": {
+    "object": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/ContentView.swift.o",
+    "swiftmodule": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/ContentView~partial.swiftmodule",
+    "swift-dependencies": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/ContentView.swiftdeps",
+    "diagnostics": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/ContentView.dia"
+  },
+  "/Users/jun/Usage App/Sources/UsageBar/Format.swift": {
+    "object": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/Format.swift.o",
+    "swiftmodule": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/Format~partial.swiftmodule",
+    "swift-dependencies": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/Format.swiftdeps",
+    "diagnostics": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/Format.dia"
+  },
+  "/Users/jun/Usage App/Sources/UsageBar/JSONLReader.swift": {
+    "object": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/JSONLReader.swift.o",
+    "swiftmodule": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/JSONLReader~partial.swiftmodule",
+    "swift-dependencies": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/JSONLReader.swiftdeps",
+    "diagnostics": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/JSONLReader.dia"
+  },
+  "/Users/jun/Usage App/Sources/UsageBar/Models.swift": {
+    "object": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/Models.swift.o",
+    "swiftmodule": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/Models~partial.swiftmodule",
+    "swift-dependencies": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/Models.swiftdeps",
+    "diagnostics": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/Models.dia"
+  },
+  "/Users/jun/Usage App/Sources/UsageBar/Pricing.swift": {
+    "object": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/Pricing.swift.o",
+    "swiftmodule": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/Pricing~partial.swiftmodule",
+    "swift-dependencies": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/Pricing.swiftdeps",
+    "diagnostics": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/Pricing.dia"
+  },
+  "/Users/jun/Usage App/Sources/UsageBar/UsageStore.swift": {
+    "object": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/UsageStore.swift.o",
+    "swiftmodule": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/UsageStore~partial.swiftmodule",
+    "swift-dependencies": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/UsageStore.swiftdeps",
+    "diagnostics": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/UsageStore.dia"
+  },
+  "/Users/jun/Usage App/Sources/UsageBar/main.swift": {
+    "object": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/main.swift.o",
+    "swiftmodule": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/main~partial.swiftmodule",
+    "swift-dependencies": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/main.swiftdeps",
+    "diagnostics": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/main.dia"
+  }
+}

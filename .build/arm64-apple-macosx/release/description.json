@@ -32,6 +32,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/jun/Usage App/Sources/UsageBar/ClaudeWebSession.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/jun/Usage App/Sources/UsageBar/CodexAppServer.swift"
         },
         {
@@ -49,6 +53,10 @@
         {
           "kind" : "file",
           "name" : "/Users/jun/Usage App/Sources/UsageBar/JSONLReader.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/jun/Usage App/Sources/UsageBar/MenuBarLabel.swift"
         },
         {
           "kind" : "file",
@@ -81,11 +89,13 @@
       "objects" : [
         "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/AppDelegate.swift.o",
         "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/ClaudeUsage.swift.o",
+        "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/ClaudeWebSession.swift.o",
         "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/CodexAppServer.swift.o",
         "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/CodexUsage.swift.o",
         "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/ContentView.swift.o",
         "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/Format.swift.o",
         "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/JSONLReader.swift.o",
+        "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/MenuBarLabel.swift.o",
         "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/Models.swift.o",
         "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/Pricing.swift.o",
         "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/UsageStore.swift.o",
@@ -143,6 +153,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/ClaudeWebSession.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/CodexAppServer.swift.o"
         },
         {
@@ -160,6 +174,10 @@
         {
           "kind" : "file",
           "name" : "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/JSONLReader.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/MenuBarLabel.swift.o"
         },
         {
           "kind" : "file",
@@ -186,11 +204,13 @@
       "sources" : [
         "/Users/jun/Usage App/Sources/UsageBar/AppDelegate.swift",
         "/Users/jun/Usage App/Sources/UsageBar/ClaudeUsage.swift",
+        "/Users/jun/Usage App/Sources/UsageBar/ClaudeWebSession.swift",
         "/Users/jun/Usage App/Sources/UsageBar/CodexAppServer.swift",
         "/Users/jun/Usage App/Sources/UsageBar/CodexUsage.swift",
         "/Users/jun/Usage App/Sources/UsageBar/ContentView.swift",
         "/Users/jun/Usage App/Sources/UsageBar/Format.swift",
         "/Users/jun/Usage App/Sources/UsageBar/JSONLReader.swift",
+        "/Users/jun/Usage App/Sources/UsageBar/MenuBarLabel.swift",
         "/Users/jun/Usage App/Sources/UsageBar/Models.swift",
         "/Users/jun/Usage App/Sources/UsageBar/Pricing.swift",
         "/Users/jun/Usage App/Sources/UsageBar/UsageStore.swift",
@@ -213,11 +233,13 @@
       "-c",
       "/Users/jun/Usage App/Sources/UsageBar/AppDelegate.swift",
       "/Users/jun/Usage App/Sources/UsageBar/ClaudeUsage.swift",
+      "/Users/jun/Usage App/Sources/UsageBar/ClaudeWebSession.swift",
       "/Users/jun/Usage App/Sources/UsageBar/CodexAppServer.swift",
       "/Users/jun/Usage App/Sources/UsageBar/CodexUsage.swift",
       "/Users/jun/Usage App/Sources/UsageBar/ContentView.swift",
       "/Users/jun/Usage App/Sources/UsageBar/Format.swift",
       "/Users/jun/Usage App/Sources/UsageBar/JSONLReader.swift",
+      "/Users/jun/Usage App/Sources/UsageBar/MenuBarLabel.swift",
       "/Users/jun/Usage App/Sources/UsageBar/Models.swift",
       "/Users/jun/Usage App/Sources/UsageBar/Pricing.swift",
       "/Users/jun/Usage App/Sources/UsageBar/UsageStore.swift",
@@ -300,6 +322,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/jun/Usage App/Sources/UsageBar/ClaudeWebSession.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/jun/Usage App/Sources/UsageBar/CodexAppServer.swift"
         },
         {
@@ -317,6 +343,10 @@
         {
           "kind" : "file",
           "name" : "/Users/jun/Usage App/Sources/UsageBar/JSONLReader.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/jun/Usage App/Sources/UsageBar/MenuBarLabel.swift"
         },
         {
           "kind" : "file",
@@ -354,6 +384,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/ClaudeWebSession.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/CodexAppServer.swift.o"
         },
         {
@@ -371,6 +405,10 @@
         {
           "kind" : "file",
           "name" : "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/JSONLReader.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/MenuBarLabel.swift.o"
         },
         {
           "kind" : "file",

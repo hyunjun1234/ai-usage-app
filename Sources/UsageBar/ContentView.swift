@@ -29,8 +29,8 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 11) {
             header
             quipBanner
-            claudeCard
-            codexCard
+            if store.toolFilter.showsClaude { claudeCard }
+            if store.toolFilter.showsCodex { codexCard }
             chartSection
         }
         .padding(14)
@@ -47,15 +47,23 @@ struct ContentView: View {
             Text("AI Usage").font(.headline)
             Spacer()
             Text(updatedText).font(.caption2).foregroundStyle(.secondary)
-            Button { store.refresh(force: true) } label: {
+            if store.isRefreshing {
+                ProgressView().controlSize(.small)
+            } else {
                 Image(systemName: "arrow.clockwise")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .padding(4)
+                    .contentShape(Rectangle())
+                    .onTapGesture { store.manualRefresh() }
+                    .help("새로고침")
             }
-            .buttonStyle(.borderless)
-            .help("새로고침")
         }
+        .frame(height: 22)
     }
 
     private var updatedText: String {
+        if store.isRefreshing { return "업데이트 중…" }
         guard let d = store.snapshot.lastUpdated else { return "불러오는 중…" }
         let s = Int(Date().timeIntervalSince(d))
         if s < 60 { return "방금 업데이트" }
@@ -81,11 +89,25 @@ struct ContentView: View {
     // MARK: Cards
 
     private var claudeCard: some View {
-        ToolCard(tool: .claude, accent: Theme.claude,
-                 badge: "추정", badgeReal: false,
-                 subtitle: store.claudePlan.label,
-                 windows: store.snapshot.claudeWindows,
-                 note: nil)
+        let snap = store.snapshot
+        let hasData = !snap.claudeWindows.isEmpty
+        let note: String?
+        let login: (() -> Void)?
+        if hasData {
+            note = nil; login = nil
+        } else if snap.claudeLoggedOut {
+            note = "claude.ai에 로그인하면 실제 5시간·주간 한도가 표시됩니다."
+            login = { store.showClaudeLogin() }
+        } else {
+            note = "claude.ai에서 한도를 불러오는 중…"
+            login = nil
+        }
+        return ToolCard(tool: .claude, accent: Theme.claude,
+                        badge: hasData ? "실시간" : "", badgeReal: true,
+                        subtitle: "",
+                        windows: snap.claudeWindows,
+                        note: note,
+                        loginAction: login)
     }
 
     private var codexCard: some View {
@@ -99,7 +121,7 @@ struct ContentView: View {
             note = "Codex 한도를 불러오지 못했습니다.\nCodex 앱이 설치·로그인되어 있는지 확인하세요."
         }
         return ToolCard(tool: .codex, accent: Theme.codex,
-                        badge: snap.codexWindows.isEmpty ? "—" : "실시간",
+                        badge: snap.codexWindows.isEmpty ? "" : "실시간",
                         badgeReal: !snap.codexWindows.isEmpty,
                         subtitle: snap.codexPlan.map { $0.capitalized } ?? "",
                         windows: snap.codexWindows,
@@ -156,17 +178,20 @@ struct ToolCard: View {
     let subtitle: String
     let windows: [LimitWindow]
     let note: String?
+    var loginAction: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Circle().fill(accent).frame(width: 9, height: 9)
                 Text(tool.label).font(.subheadline.weight(.semibold))
-                Text(badge)
-                    .font(.caption2.weight(.medium))
-                    .padding(.horizontal, 5).padding(.vertical, 1)
-                    .background((badgeReal ? accent : Color.secondary).opacity(0.18), in: Capsule())
-                    .foregroundStyle(badgeReal ? accent : Color.secondary)
+                if !badge.isEmpty {
+                    Text(badge)
+                        .font(.caption2.weight(.medium))
+                        .padding(.horizontal, 5).padding(.vertical, 1)
+                        .background((badgeReal ? accent : Color.secondary).opacity(0.18), in: Capsule())
+                        .foregroundStyle(badgeReal ? accent : Color.secondary)
+                }
                 Spacer()
                 if !subtitle.isEmpty {
                     Text(subtitle).font(.caption2).foregroundStyle(.secondary)
@@ -179,6 +204,19 @@ struct ToolCard: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ForEach(windows) { WindowRow(window: $0, accent: accent) }
+                if let note = note {
+                    Text(note)
+                        .font(.caption2).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            if let loginAction = loginAction {
+                Button(action: loginAction) {
+                    Text("Claude.ai 로그인 → 실시간 사용량")
+                        .font(.caption.weight(.medium))
+                        .frame(maxWidth: .infinity)
+                }
+                .controlSize(.small)
             }
         }
         .padding(11)

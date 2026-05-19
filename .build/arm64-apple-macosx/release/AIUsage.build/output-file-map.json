@@ -16,6 +16,12 @@
     "swift-dependencies": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/ClaudeUsage.swiftdeps",
     "diagnostics": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/ClaudeUsage.dia"
   },
+  "/Users/jun/Usage App/Sources/UsageBar/ClaudeWebSession.swift": {
+    "object": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/ClaudeWebSession.swift.o",
+    "swiftmodule": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/ClaudeWebSession~partial.swiftmodule",
+    "swift-dependencies": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/ClaudeWebSession.swiftdeps",
+    "diagnostics": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/ClaudeWebSession.dia"
+  },
   "/Users/jun/Usage App/Sources/UsageBar/CodexAppServer.swift": {
     "object": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/CodexAppServer.swift.o",
     "swiftmodule": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/CodexAppServer~partial.swiftmodule",
@@ -45,6 +51,12 @@
     "swiftmodule": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/JSONLReader~partial.swiftmodule",
     "swift-dependencies": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/JSONLReader.swiftdeps",
     "diagnostics": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/JSONLReader.dia"
+  },
+  "/Users/jun/Usage App/Sources/UsageBar/MenuBarLabel.swift": {
+    "object": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/MenuBarLabel.swift.o",
+    "swiftmodule": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/MenuBarLabel~partial.swiftmodule",
+    "swift-dependencies": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/MenuBarLabel.swiftdeps",
+    "diagnostics": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/MenuBarLabel.dia"
   },
   "/Users/jun/Usage App/Sources/UsageBar/Models.swift": {
     "object": "/Users/jun/Usage App/.build/arm64-apple-macosx/release/AIUsage.build/Models.swift.o",

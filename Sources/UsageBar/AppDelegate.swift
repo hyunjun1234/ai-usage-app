@@ -6,17 +6,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private let popover = NSPopover()
     private let store = UsageStore()
+    private let menuLabel = MenuBarLabel()
     private var cancellables = Set<AnyCancellable>()
     private var timer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        setupMainMenu()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
-            button.image = nil
-            (button.cell as? NSButtonCell)?.usesSingleLineMode = false
             button.target = self
             button.action = #selector(statusItemClicked)
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+            menuLabel.translatesAutoresizingMaskIntoConstraints = false
+            button.addSubview(menuLabel)
+            NSLayoutConstraint.activate([
+                menuLabel.leadingAnchor.constraint(equalTo: button.leadingAnchor),
+                menuLabel.trailingAnchor.constraint(equalTo: button.trailingAnchor),
+                menuLabel.topAnchor.constraint(equalTo: button.topAnchor),
+                menuLabel.bottomAnchor.constraint(equalTo: button.bottomAnchor),
+            ])
         }
         updateStatusTitle()
 
@@ -32,9 +40,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .store(in: &cancellables)
 
         store.refresh(force: true)
-        timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
             self?.store.refresh()
         }
+    }
+
+    /// A minimal main menu — without an Edit menu, cmd+C/V/X don't reach
+    /// text fields in the login window (the app has no menu bar otherwise).
+    private func setupMainMenu() {
+        let mainMenu = NSMenu()
+
+        let appItem = NSMenuItem()
+        let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "AI Usage 종료",
+                        action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appItem.submenu = appMenu
+        mainMenu.addItem(appItem)
+
+        let editItem = NSMenuItem()
+        let editMenu = NSMenu(title: "편집")
+        editMenu.addItem(withTitle: "오려두기", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        editMenu.addItem(withTitle: "복사", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        editMenu.addItem(withTitle: "붙여넣기", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        editMenu.addItem(withTitle: "전체 선택",
+                         action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        editItem.submenu = editMenu
+        mainMenu.addItem(editItem)
+
+        NSApp.mainMenu = mainMenu
     }
 
     // MARK: - Clicks
@@ -72,6 +105,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .target = self
         menu.addItem(withTitle: "지금 새로고침", action: #selector(refreshNow), keyEquivalent: "r")
             .target = self
+        menu.addItem(withTitle: "Claude.ai 로그인", action: #selector(loginClaude), keyEquivalent: "")
+            .target = self
 
         menu.addItem(.separator())
 
@@ -88,18 +123,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         windowItem.submenu = windowMenu
         menu.addItem(windowItem)
 
-        let planItem = NSMenuItem(title: "Claude 요금제", action: nil, keyEquivalent: "")
-        let planMenu = NSMenu()
-        for plan in ClaudePlan.allCases {
-            let item = NSMenuItem(title: plan.label,
-                                  action: #selector(selectPlan(_:)), keyEquivalent: "")
+        let toolItem = NSMenuItem(title: "표시할 도구", action: nil, keyEquivalent: "")
+        let toolMenu = NSMenu()
+        for filter in ToolFilter.allCases {
+            let item = NSMenuItem(title: filter.label,
+                                  action: #selector(selectToolFilter(_:)), keyEquivalent: "")
             item.target = self
-            item.representedObject = plan.rawValue
-            item.state = (store.claudePlan == plan) ? .on : .off
-            planMenu.addItem(item)
+            item.representedObject = filter.rawValue
+            item.state = (store.toolFilter == filter) ? .on : .off
+            toolMenu.addItem(item)
         }
-        planItem.submenu = planMenu
-        menu.addItem(planItem)
+        toolItem.submenu = toolMenu
+        menu.addItem(toolItem)
 
         let launch = NSMenuItem(title: "로그인 시 자동 실행",
                                 action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
@@ -121,19 +156,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openPopover() { if !popover.isShown { togglePopover() } }
     @objc private func refreshNow() { store.refresh(force: true) }
+    @objc private func loginClaude() { store.showClaudeLogin() }
     @objc private func toggleLaunchAtLogin() { store.launchAtLogin.toggle() }
     @objc private func quit() { NSApplication.shared.terminate(nil) }
-
-    @objc private func selectPlan(_ sender: NSMenuItem) {
-        if let raw = sender.representedObject as? String, let plan = ClaudePlan(rawValue: raw) {
-            store.claudePlan = plan
-            store.refresh()
-        }
-    }
 
     @objc private func selectMenuWindow(_ sender: NSMenuItem) {
         if let raw = sender.representedObject as? String, let kind = WindowKind(rawValue: raw) {
             store.menuWindow = kind
+        }
+    }
+
+    @objc private func selectToolFilter(_ sender: NSMenuItem) {
+        if let raw = sender.representedObject as? String, let filter = ToolFilter(rawValue: raw) {
+            store.toolFilter = filter
+            store.refresh()
         }
     }
 
@@ -145,7 +181,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Claude Code · Codex 사용량을 메뉴 막대에 표시합니다.
         Codex 한도는 실시간, Claude는 요금제 기반 추정입니다.
 
-        버전 2.0
+        버전 2.1
         """
         alert.addButton(withTitle: "확인")
         alert.runModal()
@@ -154,34 +190,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Menu-bar title (two stacked lines: C / X)
 
     private func updateStatusTitle() {
-        guard let button = statusItem.button else { return }
         let snap = store.snapshot
-
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.alignment = .right
-        paragraph.lineSpacing = 0
-        paragraph.maximumLineHeight = 10
-        paragraph.minimumLineHeight = 10
-        let font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .semibold)
-
         let kind = store.menuWindow
-        let title = NSMutableAttributedString()
-        title.append(line("C", snap.percent(.claude, kind), font, paragraph))
-        title.append(NSAttributedString(string: "\n"))
-        title.append(line("X", snap.percent(.codex, kind), font, paragraph))
-        button.attributedTitle = title
+        var lines: [MenuBarLabel.Line] = []
+        if store.toolFilter.showsClaude {
+            lines.append(menuLine("C", snap.percent(.claude, kind)))
+        }
+        if store.toolFilter.showsCodex {
+            lines.append(menuLine("X", snap.percent(.codex, kind)))
+        }
+        menuLabel.lines = lines
+        statusItem.length = menuLabel.contentWidth
     }
 
-    private func line(_ tag: String, _ percent: Double?,
-                      _ font: NSFont, _ paragraph: NSParagraphStyle) -> NSAttributedString {
+    private func menuLine(_ tag: String, _ percent: Double?) -> MenuBarLabel.Line {
         let text = percent.map { "\(tag) \(Int($0.rounded()))%" } ?? "\(tag)  —"
         var color = NSColor.labelColor
         if let p = percent {
             if p >= 100 { color = .systemRed }
             else if p >= 80 { color = .systemOrange }
         }
-        return NSAttributedString(string: text, attributes: [
-            .font: font, .foregroundColor: color, .paragraphStyle: paragraph,
-        ])
+        return MenuBarLabel.Line(text: text, color: color)
     }
 }

@@ -2,32 +2,18 @@ import Foundation
 import Combine
 import ServiceManagement
 
-/// Claude subscription plan — drives the (estimated) budget.
-enum ClaudePlan: String, CaseIterable {
-    case pro, max5x, max20x
+/// Which tools the menu bar and popover show.
+enum ToolFilter: String, CaseIterable {
+    case both, claudeOnly, codexOnly
     var label: String {
         switch self {
-        case .pro:    return "Pro"
-        case .max5x:  return "Max 5x"
-        case .max20x: return "Max 20x"
+        case .both:       return "Claude · Codex 모두"
+        case .claudeOnly: return "Claude만"
+        case .codexOnly:  return "Codex만"
         }
     }
-    /// Estimated 5-hour spend budget in USD — calibrated against Claude's panel.
-    var fiveHourBudget: Double {
-        switch self {
-        case .pro:    return 72
-        case .max5x:  return 360
-        case .max20x: return 1440
-        }
-    }
-    /// Estimated weekly spend budget in USD — calibrated against Claude's panel.
-    var weeklyBudget: Double {
-        switch self {
-        case .pro:    return 181
-        case .max5x:  return 906
-        case .max20x: return 3624
-        }
-    }
+    var showsClaude: Bool { self != .codexOnly }
+    var showsCodex: Bool { self != .claudeOnly }
 }
 
 /// Everything the UI needs, recomputed whenever inputs change.
@@ -40,6 +26,7 @@ struct Snapshot {
     var codexOK = true
     var codexFetched: Date?
     var codexPlan: String?
+    var claudeLoggedOut = false
 
     func windows(for tool: Tool) -> [LimitWindow] {
         tool == .claude ? claudeWindows : codexWindows
@@ -50,21 +37,20 @@ struct Snapshot {
     }
 }
 
-/// Owns the parsers, drives refreshes, and publishes a derived Snapshot.
+/// Owns the data sources, drives refreshes, and publishes a derived Snapshot.
+/// Both tools now report *real* limits — Codex via `codex app-server`,
+/// Claude via a signed-in claude.ai web session.
 final class UsageStore: ObservableObject {
     @Published private(set) var snapshot = Snapshot()
-    @Published var claudePlan: ClaudePlan {
-        didSet {
-            UserDefaults.standard.set(claudePlan.rawValue, forKey: "claudePlan")
-            recompute()
-        }
-    }
-    /// Which window the menu bar shows (5-hour or weekly).
+    @Published private(set) var isRefreshing = false
     @Published var menuWindow: WindowKind {
         didSet { UserDefaults.standard.set(menuWindow.rawValue, forKey: "menuWindow") }
     }
+    @Published var toolFilter: ToolFilter {
+        didSet { UserDefaults.standard.set(toolFilter.rawValue, forKey: "toolFilter") }
+    }
 
-    private var events: [UsageEvent] = []
+    private var events: [UsageEvent] = []          // for the 14-day trend chart
     private var codexLimits: CodexLimitsResult?
     private var codexFetchOK = true
     private var lastUpdated: Date?
@@ -76,11 +62,37 @@ final class UsageStore: ObservableObject {
     private let scanQueue = DispatchQueue(label: "aiusage.scan")
     private let codexQueue = DispatchQueue(label: "aiusage.codex")
 
+    private let claudeWeb = ClaudeWebSession()
+    private var claudeReal: (fiveHour: LimitWindow, weekly: LimitWindow)?
+    private var claudeLoggedOut = false
+    private var claudeFetchedAt: Date?
+    private var didAutoPromptLogin = false
+
     init() {
-        claudePlan = ClaudePlan(rawValue: UserDefaults.standard.string(forKey: "claudePlan") ?? "")
-            ?? .max5x
         menuWindow = WindowKind(rawValue: UserDefaults.standard.string(forKey: "menuWindow") ?? "")
             ?? .fiveHour
+        toolFilter = ToolFilter(rawValue: UserDefaults.standard.string(forKey: "toolFilter") ?? "")
+            ?? .both
+
+        claudeWeb.onResult = { [weak self] result in
+            guard let self = self else { return }
+            self.claudeFetchedAt = Date()
+            switch result {
+            case .ok(let five, let week):
+                self.claudeReal = (five, week)
+                self.claudeLoggedOut = false
+            case .loggedOut:
+                self.claudeReal = nil
+                self.claudeLoggedOut = true
+                if !self.didAutoPromptLogin {
+                    self.didAutoPromptLogin = true
+                    self.claudeWeb.showLoginWindow()
+                }
+            case .error:
+                break       // transient — keep the previous state
+            }
+            self.recompute()
+        }
     }
 
     // MARK: - Refresh
@@ -97,8 +109,29 @@ final class UsageStore: ObservableObject {
                 self.recompute()
             }
         }
-        let stale = codexFetchedAt.map { Date().timeIntervalSince($0) > 300 } ?? true
-        if force || stale { refreshCodexLimits() }
+        if toolFilter.showsCodex {
+            let codexStale = codexFetchedAt.map { Date().timeIntervalSince($0) > 10 } ?? true
+            if force || codexStale { refreshCodexLimits() }
+        }
+        // claude.ai usage is a remote API — poll it gently (~60s).
+        if toolFilter.showsClaude {
+            let claudeStale = claudeFetchedAt.map { Date().timeIntervalSince($0) > 55 } ?? true
+            if force || claudeStale { claudeWeb.refreshUsage() }
+        }
+    }
+
+    /// Manual refresh from the popover button — shows a brief spinner.
+    func manualRefresh() {
+        isRefreshing = true
+        refresh(force: true)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+            self?.isRefreshing = false
+        }
+    }
+
+    /// Opens the claude.ai sign-in window.
+    func showClaudeLogin() {
+        claudeWeb.showLoginWindow()
     }
 
     func refreshCodexLimits() {
@@ -124,7 +157,7 @@ final class UsageStore: ObservableObject {
     // MARK: - Derived snapshot
 
     private func recompute() {
-        let cWindows = claudeWindows()
+        let cWindows = claudeReal.map { [$0.fiveHour, $0.weekly] } ?? []
         let xWindows = [codexLimits?.fiveHour, codexLimits?.weekly].compactMap { $0 }
         let bars = dailySeries(days: 14)
         let maxPct = (cWindows + xWindows).map { $0.usedPercent }.max()
@@ -136,65 +169,8 @@ final class UsageStore: ObservableObject {
             lastUpdated: lastUpdated,
             codexOK: codexFetchOK,
             codexFetched: codexFetchedAt,
-            codexPlan: codexLimits?.planType)
-    }
-
-    // MARK: - Claude windows (estimated)
-
-    private func claudeWindows() -> [LimitWindow] {
-        let claudeEvents = events.filter { $0.tool == .claude }.sorted { $0.date < $1.date }
-        return [claudeFiveHour(claudeEvents), claudeWeekly(claudeEvents)]
-    }
-
-    private func claudeFiveHour(_ sorted: [UsageEvent]) -> LimitWindow {
-        let blockLength: TimeInterval = 5 * 3600
-        // Claude's session window starts at the block's first message, floored
-        // to the nearest 10 minutes, and runs 5 hours. Once it elapses the
-        // window stays at 0% until the next message starts a fresh block.
-        var blockStart: Date?
-        for t in claude.activityDates.sorted() {
-            if let bs = blockStart, t < bs.addingTimeInterval(blockLength) { continue }
-            blockStart = UsageStore.floor10Minutes(t)
-        }
-        guard let bs = blockStart else {
-            return LimitWindow(kind: .fiveHour, usedPercent: 0, resetsAt: nil, isReal: false)
-        }
-        let blockEnd = bs.addingTimeInterval(blockLength)
-        if Date() >= blockEnd {   // window elapsed — 0% until next use
-            return LimitWindow(kind: .fiveHour, usedPercent: 0, resetsAt: nil, isReal: false)
-        }
-        let cost = sorted.filter { $0.date >= bs }.reduce(0) { $0 + $1.cost }
-        let budget = claudePlan.fiveHourBudget
-        return LimitWindow(kind: .fiveHour,
-                           usedPercent: budget > 0 ? cost / budget * 100 : 0,
-                           resetsAt: blockEnd, isReal: false)
-    }
-
-    /// Floors a date down to the nearest 10-minute boundary.
-    static func floor10Minutes(_ date: Date) -> Date {
-        let t = date.timeIntervalSince1970
-        return Date(timeIntervalSince1970: (t / 600).rounded(.down) * 600)
-    }
-
-    private func claudeWeekly(_ sorted: [UsageEvent]) -> LimitWindow {
-        let weekStart = UsageStore.weeklyAnchor(before: Date())
-        let cost = sorted.filter { $0.date >= weekStart }.reduce(0) { $0 + $1.cost }
-        let budget = claudePlan.weeklyBudget
-        return LimitWindow(kind: .weekly,
-                           usedPercent: budget > 0 ? cost / budget * 100 : 0,
-                           resetsAt: weekStart.addingTimeInterval(7 * 86400), isReal: false)
-    }
-
-    /// Most recent Friday 02:00 local — matches Claude's weekly reset.
-    static func weeklyAnchor(before date: Date) -> Date {
-        var comps = DateComponents()
-        comps.weekday = 6        // Friday (1 = Sunday)
-        comps.hour = 2
-        comps.minute = 0
-        return Calendar.current.nextDate(after: date, matching: comps,
-                                         matchingPolicy: .nextTime,
-                                         direction: .backward)
-            ?? Calendar.current.startOfDay(for: date)
+            codexPlan: codexLimits?.planType,
+            claudeLoggedOut: claudeLoggedOut)
     }
 
     // MARK: - Trend chart

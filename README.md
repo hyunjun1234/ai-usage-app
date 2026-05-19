@@ -65,16 +65,62 @@ cd "Usage App"
 open "/Applications/AI Usage.app"
 ```
 
-## 배포 (.dmg)
+## 배포 (.dmg 만들기)
 
 ```sh
 ./make-dmg.sh                     # "AI Usage.dmg" 생성
 ```
 
-GitHub Release 등에 올릴 디스크 이미지를 만듭니다. 단, 앱은 ad-hoc 서명
-상태라 — 내려받아 처음 열면 macOS Gatekeeper 경고가 뜹니다. **우클릭 → "열기"**
-로 한 번 허용하면 됩니다. 경고 없이 배포하려면 Apple Developer 계정으로
-Developer ID 서명 + 공증(notarization)이 필요합니다.
+GitHub Release 등에 올릴 디스크 이미지를 만듭니다. 받는 사람이 처음 열 때의
+안내는 바로 아래 섹션을 참고하세요.
+
+## 다운로드한 앱 처음 열기 (Gatekeeper 경고 해결)
+
+내려받은 `AI Usage.dmg`로 앱을 처음 실행하면 macOS가 이런 경고를 띄웁니다:
+
+> **"AI Usage.app" Not Opened**
+> Apple could not verify "AI Usage.app" is free of malware that may harm your
+> Mac or compromise your privacy.
+
+이는 **앱에 문제가 있다는 뜻이 아닙니다.** Apple 공증(notarization)은 유료
+개발자 프로그램($99/년)에서만 가능한데 이 앱은 공증되지 않았을 뿐이며, 공증되지
+않은 *모든* 앱에 똑같이 표시되는 경고입니다. 아래 두 방법 중 하나로 한 번만
+허용하면, 그 뒤로는 평범하게 더블클릭으로 열립니다.
+
+### 방법 1 — 시스템 설정 (권장)
+
+1. `AI Usage.dmg`를 더블클릭 → 열린 창에서 **AI Usage** 앱을 **Applications**
+   폴더로 드래그합니다.
+2. Applications 폴더에서 **AI Usage**를 더블클릭합니다. 위 경고창이 뜨면
+   **Done(완료)** 을 눌러 닫습니다.
+3. 화면 왼쪽 위 **Apple 메뉴() → 시스템 설정**을 엽니다.
+4. 왼쪽 목록에서 **개인정보 보호 및 보안**을 선택합니다.
+5. 오른쪽 화면을 아래로 스크롤하면 **보안** 항목에
+   *"'AI Usage'이(가) … 차단되었습니다"* 문구와 함께 **"확인 없이 열기"**
+   버튼이 보입니다 → 이 버튼을 누릅니다.
+   *(이 버튼은 2번에서 한 번 실행을 시도한 직후에만 나타납니다.)*
+6. 다시 뜨는 확인 창에서 **"확인 없이 열기"** → 암호 입력 또는 Touch ID.
+7. 앱이 실행됩니다. **이후로는 그냥 더블클릭으로 열립니다.**
+
+### 방법 2 — 터미널 (빠름)
+
+1. `AI Usage.dmg` → **AI Usage** 앱을 **Applications** 폴더로 드래그합니다.
+2. **터미널**(Terminal.app)을 열고 아래 한 줄을 붙여넣은 뒤 Enter 를 누릅니다:
+
+   ```sh
+   xattr -dr com.apple.quarantine "/Applications/AI Usage.app"
+   ```
+
+3. 이제 **AI Usage**를 평범하게 더블클릭하면 경고 없이 바로 열립니다.
+
+> **참고** — macOS 15(Sequoia)부터는 예전의 *앱 우클릭 → 열기* 방식이 더 이상
+> 통하지 않습니다. 위 두 방법 중 하나를 사용하세요.
+
+### 경고를 아예 없애려면
+
+받는 사람이 위 과정을 거치지 않게 하려면 **Apple Developer 유료 프로그램
+($99/년)** 에 가입해 Developer ID 서명 + 공증(notarization)을 거쳐야 합니다.
+그 외에 무료로 우회할 방법은 없습니다.
 
 ## 갱신 주기
 

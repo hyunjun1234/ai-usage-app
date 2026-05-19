@@ -36,11 +36,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         store.objectWillChange
             .receive(on: RunLoop.main)
-            .sink { [weak self] _ in self?.updateStatusTitle() }
+            .sink { [weak self] _ in
+                self?.updateStatusTitle()
+                self?.reconcileTimer()
+            }
             .store(in: &cancellables)
 
         store.refresh(force: true)
-        timer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
+        reconcileTimer()
+    }
+
+    /// Recreates the auto-refresh timer when the chosen interval changes.
+    private func reconcileTimer() {
+        let interval = TimeInterval(store.refreshInterval.rawValue)
+        if timer?.timeInterval == interval { return }
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             self?.store.refresh()
         }
     }
@@ -136,6 +147,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         toolItem.submenu = toolMenu
         menu.addItem(toolItem)
 
+        let intervalItem = NSMenuItem(title: "갱신 주기", action: nil, keyEquivalent: "")
+        let intervalMenu = NSMenu()
+        for iv in RefreshInterval.allCases {
+            let item = NSMenuItem(title: iv.label,
+                                  action: #selector(selectInterval(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = iv.rawValue
+            item.state = (store.refreshInterval == iv) ? .on : .off
+            intervalMenu.addItem(item)
+        }
+        intervalItem.submenu = intervalMenu
+        menu.addItem(intervalItem)
+
         let launch = NSMenuItem(title: "로그인 시 자동 실행",
                                 action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
         launch.target = self
@@ -170,6 +194,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let raw = sender.representedObject as? String, let filter = ToolFilter(rawValue: raw) {
             store.toolFilter = filter
             store.refresh()
+        }
+    }
+
+    @objc private func selectInterval(_ sender: NSMenuItem) {
+        if let raw = sender.representedObject as? Int, let iv = RefreshInterval(rawValue: raw) {
+            store.refreshInterval = iv
         }
     }
 

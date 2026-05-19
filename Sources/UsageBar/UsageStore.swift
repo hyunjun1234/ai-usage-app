@@ -16,6 +16,20 @@ enum ToolFilter: String, CaseIterable {
     var showsCodex: Bool { self != .claudeOnly }
 }
 
+/// Auto-refresh cadence, selectable from the right-click menu.
+enum RefreshInterval: Int, CaseIterable {
+    case s10 = 10, s30 = 30, m1 = 60, m5 = 300, m10 = 600
+    var label: String {
+        switch self {
+        case .s10: return "10초"
+        case .s30: return "30초"
+        case .m1:  return "1분"
+        case .m5:  return "5분"
+        case .m10: return "10분"
+        }
+    }
+}
+
 /// Everything the UI needs, recomputed whenever inputs change.
 struct Snapshot {
     var claudeWindows: [LimitWindow] = []
@@ -49,6 +63,9 @@ final class UsageStore: ObservableObject {
     @Published var toolFilter: ToolFilter {
         didSet { UserDefaults.standard.set(toolFilter.rawValue, forKey: "toolFilter") }
     }
+    @Published var refreshInterval: RefreshInterval {
+        didSet { UserDefaults.standard.set(refreshInterval.rawValue, forKey: "refreshInterval") }
+    }
 
     private var events: [UsageEvent] = []          // for the 14-day trend chart
     private var codexLimits: CodexLimitsResult?
@@ -65,7 +82,6 @@ final class UsageStore: ObservableObject {
     private let claudeWeb = ClaudeWebSession()
     private var claudeReal: (fiveHour: LimitWindow, weekly: LimitWindow)?
     private var claudeLoggedOut = false
-    private var claudeFetchedAt: Date?
     private var didAutoPromptLogin = false
 
     init() {
@@ -73,10 +89,11 @@ final class UsageStore: ObservableObject {
             ?? .fiveHour
         toolFilter = ToolFilter(rawValue: UserDefaults.standard.string(forKey: "toolFilter") ?? "")
             ?? .both
+        refreshInterval = RefreshInterval(
+            rawValue: UserDefaults.standard.integer(forKey: "refreshInterval")) ?? .s10
 
         claudeWeb.onResult = { [weak self] result in
             guard let self = self else { return }
-            self.claudeFetchedAt = Date()
             switch result {
             case .ok(let five, let week):
                 self.claudeReal = (five, week)
@@ -109,15 +126,9 @@ final class UsageStore: ObservableObject {
                 self.recompute()
             }
         }
-        if toolFilter.showsCodex {
-            let codexStale = codexFetchedAt.map { Date().timeIntervalSince($0) > 10 } ?? true
-            if force || codexStale { refreshCodexLimits() }
-        }
-        // claude.ai usage is a remote API — poll it gently (~60s).
-        if toolFilter.showsClaude {
-            let claudeStale = claudeFetchedAt.map { Date().timeIntervalSince($0) > 55 } ?? true
-            if force || claudeStale { claudeWeb.refreshUsage() }
-        }
+        // Cadence is driven by the menu-bar timer; in-flight guards prevent overlap.
+        if toolFilter.showsCodex { refreshCodexLimits() }
+        if toolFilter.showsClaude { claudeWeb.refreshUsage() }
     }
 
     /// Manual refresh from the popover button — shows a brief spinner.

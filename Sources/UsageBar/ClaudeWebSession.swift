@@ -2,7 +2,7 @@ import WebKit
 import AppKit
 
 enum ClaudeUsageResult {
-    case ok(fiveHour: LimitWindow, weekly: LimitWindow)
+    case ok(fiveHour: LimitWindow, weekly: LimitWindow, plan: String?)
     case loggedOut
     case error(String)
 }
@@ -17,6 +17,11 @@ final class ClaudeWebSession: NSObject, WKNavigationDelegate, WKUIDelegate, NSWi
     private var fetchInFlight = false
     private var loginPollTimer: Timer?
     private var popupWindows: [NSWindow] = []
+    /// True once we've observed a logged-out state since the login window
+    /// was opened. The window only auto-closes if we saw logged-out → ok
+    /// (a real login). Opening the window while already logged in keeps it
+    /// open so the user can browse claude.ai.
+    private var sawLoggedOutInWindow = false
 
     // Present as real Safari — Google blocks OAuth from webviews whose UA
     // lacks the Version/Safari tokens.
@@ -55,8 +60,11 @@ final class ClaudeWebSession: NSObject, WKNavigationDelegate, WKUIDelegate, NSWi
         return wv
     }
 
-    /// Brings up the sign-in window and polls quickly so it self-closes on login.
+    /// Brings up the sign-in window and polls quickly so it self-closes after
+    /// a successful login. If the user is already logged in when they open it,
+    /// the window stays open (they explicitly wanted to look at claude.ai).
     func showLoginWindow() {
+        sawLoggedOutInWindow = false
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
         loginPollTimer?.invalidate()
@@ -83,9 +91,15 @@ final class ClaudeWebSession: NSObject, WKNavigationDelegate, WKUIDelegate, NSWi
             guard let self = self, !finished else { return }
             finished = true
             self.fetchInFlight = false
+            if case .loggedOut = result, self.window.isVisible {
+                self.sawLoggedOutInWindow = true
+            }
             if case .ok = result {
-                if self.window.isVisible { self.window.orderOut(nil) }
                 self.stopLoginPoll()
+                // Only auto-close after an actual login (logged-out → ok).
+                if self.window.isVisible && self.sawLoggedOutInWindow {
+                    self.window.orderOut(nil)
+                }
             }
             self.onResult?(result)
         }
@@ -93,6 +107,22 @@ final class ClaudeWebSession: NSObject, WKNavigationDelegate, WKUIDelegate, NSWi
 
         let js = #"""
         const H = {'anthropic-client-platform':'web_claude_ai','anthropic-client-version':'1.0.0','Accept':'application/json'};
+        function detectPlan(org) {
+          const caps = org.capabilities || [];
+          const tier = (org.rate_limit_tier || '').toLowerCase();
+          const cs = caps.join(',').toLowerCase();
+          if (caps.includes('claude_max') || cs.includes('max')) {
+            if (tier.includes('max_20x')) return 'Max 20x';
+            if (tier.includes('max_5x'))  return 'Max 5x';
+            return 'Max';
+          }
+          if (caps.includes('pro') || cs.includes('pro')) return 'Pro';
+          if (org.raven_type === 'enterprise') return 'Enterprise';
+          if (org.raven_type === 'team')       return 'Team';
+          if (caps.includes('free'))            return 'Free';
+          if (caps.includes('api') && caps.length === 1) return 'API';
+          return null;
+        }
         try {
           const o = await fetch('/api/organizations', {credentials:'include', headers:H, cache:'no-store'});
           if (o.status === 401 || o.status === 403) return JSON.stringify({state:'loggedOut'});
@@ -100,7 +130,12 @@ final class ClaudeWebSession: NSObject, WKNavigationDelegate, WKUIDelegate, NSWi
           const orgs = await o.json();
           for (const org of (orgs || [])) {
             const u = await fetch('/api/organizations/' + org.uuid + '/usage', {credentials:'include', headers:H, cache:'no-store'});
-            if (u.ok) { const j = await u.json(); if (j && j.five_hour) return JSON.stringify({state:'ok', usage:j}); }
+            if (u.ok) {
+              const j = await u.json();
+              if (j && j.five_hour) {
+                return JSON.stringify({state:'ok', usage:j, plan: detectPlan(org)});
+              }
+            }
           }
           return JSON.stringify({state:'error', detail:'no usage'});
         } catch (e) { return JSON.stringify({state:'error', detail:String(e)}); }
@@ -123,7 +158,8 @@ final class ClaudeWebSession: NSObject, WKNavigationDelegate, WKUIDelegate, NSWi
                 case "ok":
                     if let usage = obj["usage"] as? [String: Any],
                        let windows = ClaudeWebSession.parse(usage) {
-                        finish(.ok(fiveHour: windows.0, weekly: windows.1))
+                        let plan = obj["plan"] as? String
+                        finish(.ok(fiveHour: windows.0, weekly: windows.1, plan: plan))
                     } else {
                         finish(.error("usage parse"))
                     }

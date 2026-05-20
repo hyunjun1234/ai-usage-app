@@ -41,6 +41,7 @@ struct Snapshot {
     var codexFetched: Date?
     var codexPlan: String?
     var claudeLoggedOut = false
+    var claudePlan: String? = nil
 
     func windows(for tool: Tool) -> [LimitWindow] {
         tool == .claude ? claudeWindows : codexWindows
@@ -81,6 +82,7 @@ final class UsageStore: ObservableObject {
 
     private let claudeWeb = ClaudeWebSession()
     private var claudeReal: (fiveHour: LimitWindow, weekly: LimitWindow)?
+    private var claudePlan: String?
     private var claudeLoggedOut = false
     private var didAutoPromptLogin = false
 
@@ -95,11 +97,13 @@ final class UsageStore: ObservableObject {
         claudeWeb.onResult = { [weak self] result in
             guard let self = self else { return }
             switch result {
-            case .ok(let five, let week):
+            case .ok(let five, let week, let plan):
                 self.claudeReal = (five, week)
+                self.claudePlan = plan       // null wipes a stale label
                 self.claudeLoggedOut = false
             case .loggedOut:
                 self.claudeReal = nil
+                self.claudePlan = nil
                 self.claudeLoggedOut = true
                 if !self.didAutoPromptLogin {
                     self.didAutoPromptLogin = true
@@ -181,7 +185,8 @@ final class UsageStore: ObservableObject {
             codexOK: codexFetchOK,
             codexFetched: codexFetchedAt,
             codexPlan: codexLimits?.planType,
-            claudeLoggedOut: claudeLoggedOut)
+            claudeLoggedOut: claudeLoggedOut,
+            claudePlan: claudePlan)
     }
 
     // MARK: - Trend chart

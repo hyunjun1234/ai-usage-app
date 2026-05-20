@@ -104,7 +104,7 @@ struct ContentView: View {
         }
         return ToolCard(tool: .claude, accent: Theme.claude,
                         badge: hasData ? "실시간" : "", badgeReal: true,
-                        subtitle: "",
+                        subtitle: snap.claudePlan ?? "",
                         windows: snap.claudeWindows,
                         note: note,
                         loginAction: login)

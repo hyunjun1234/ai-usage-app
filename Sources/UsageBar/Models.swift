@@ -51,10 +51,7 @@ struct LimitWindow: Identifiable {
     var resetText: String? {
         guard let r = resetsAt else { return nil }
         if r.timeIntervalSinceNow <= 0 { return "곧 초기화" }
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "ko_KR")
-        f.dateFormat = Calendar.current.isDateInToday(r) ? "a h:mm 초기화" : "M/d a h:mm 초기화"
-        return f.string(from: r)
+        return Fmt.resetText(r)
     }
 }
 

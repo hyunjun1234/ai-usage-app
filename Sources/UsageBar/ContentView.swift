@@ -158,11 +158,8 @@ struct ContentView: View {
     }
 
     private func hoverText(_ day: DayBar) -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "ko_KR")
-        f.dateFormat = "M/d (E)"
         func tok(_ n: Int) -> String { n == 0 ? "0" : "\(Fmt.compact(n))토큰" }
-        return "\(f.string(from: day.day)) · Claude \(tok(day.claudeTokens)) · Codex \(tok(day.codexTokens))"
+        return "\(Fmt.hoverDay(day.day)) · Claude \(tok(day.claudeTokens)) · Codex \(tok(day.codexTokens))"
     }
 
     // MARK: Footer

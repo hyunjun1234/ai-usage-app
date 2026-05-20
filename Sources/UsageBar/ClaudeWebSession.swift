@@ -171,16 +171,12 @@ final class ClaudeWebSession: NSObject, WKNavigationDelegate, WKUIDelegate, NSWi
     }
 
     private static func parse(_ usage: [String: Any]) -> (LimitWindow, LimitWindow)? {
-        let isoFractional = ISO8601DateFormatter()
-        isoFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let isoPlain = ISO8601DateFormatter()
-
         func window(_ key: String, _ kind: WindowKind) -> LimitWindow? {
             guard let w = usage[key] as? [String: Any],
                   let util = (w["utilization"] as? NSNumber)?.doubleValue else { return nil }
             var reset: Date?
             if let s = w["resets_at"] as? String {
-                reset = isoFractional.date(from: s) ?? isoPlain.date(from: s)
+                reset = Fmt.claudeUsageResetDate(s)
             }
             return LimitWindow(kind: kind, usedPercent: util, resetsAt: reset, isReal: true)
         }

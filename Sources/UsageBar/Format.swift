@@ -1,6 +1,35 @@
 import Foundation
 
 enum Fmt {
+    private static let koHoverDayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ko_KR")
+        f.dateFormat = "M/d (E)"
+        return f
+    }()
+
+    private static let resetTodayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ko_KR")
+        f.dateFormat = "a h:mm 초기화"
+        return f
+    }()
+
+    private static let resetOtherDayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ko_KR")
+        f.dateFormat = "M/d a h:mm 초기화"
+        return f
+    }()
+
+    private static let claudeUsageISOFractional: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    private static let claudeUsageISOPlain = ISO8601DateFormatter()
+
     /// 1_234_567 -> "1.2M", 12_345 -> "12.3K"
     static func compact(_ n: Int) -> String {
         let v = Double(n)
@@ -26,6 +55,21 @@ enum Fmt {
             return "$" + (f.string(from: NSNumber(value: v)) ?? "\(Int(v))")
         }
         return String(format: "$%.2f", v)
+    }
+
+    static func hoverDay(_ date: Date) -> String {
+        koHoverDayFormatter.string(from: date)
+    }
+
+    static func resetText(_ date: Date) -> String {
+        let formatter = Calendar.current.isDateInToday(date)
+            ? resetTodayFormatter
+            : resetOtherDayFormatter
+        return formatter.string(from: date)
+    }
+
+    static func claudeUsageResetDate(_ string: String) -> Date? {
+        claudeUsageISOFractional.date(from: string) ?? claudeUsageISOPlain.date(from: string)
     }
 }
 

@@ -4,3 +4,8 @@
 DerivedData/
 *.xcuserstate
 xcuserdata/
+
+# Local AI assistant workspace/config files
+.codex/
+.claude/
+AGENTS.md

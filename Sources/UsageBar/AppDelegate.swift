@@ -208,10 +208,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let alert = NSAlert()
         alert.messageText = "AI Usage"
         alert.informativeText = """
-        Claude Code · Codex 사용량을 메뉴 막대에 표시합니다.
-        Codex 한도는 실시간, Claude는 요금제 기반 추정입니다.
+        Claude · Codex 사용량을 메뉴 막대에 표시합니다.
+        두 도구 모두 계정의 실제 한도를 실시간으로 보여줍니다.
 
-        버전 2.1
+        버전 2.2
         """
         alert.addButton(withTitle: "확인")
         alert.runModal()

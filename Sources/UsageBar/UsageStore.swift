@@ -68,7 +68,7 @@ final class UsageStore: ObservableObject {
         didSet { UserDefaults.standard.set(refreshInterval.rawValue, forKey: "refreshInterval") }
     }
 
-    private var events: [UsageEvent] = []          // for the 14-day trend chart
+    private var events: [UsageEvent] = []          // Claude only — for the 14-day chart
     private var codexLimits: CodexLimitsResult?
     private var codexFetchOK = true
     private var lastUpdated: Date?
@@ -76,7 +76,6 @@ final class UsageStore: ObservableObject {
     private var codexInFlight = false
 
     private let claude = ClaudeParser()
-    private let codex = CodexParser()
     private let scanQueue = DispatchQueue(label: "aiusage.scan")
     private let codexQueue = DispatchQueue(label: "aiusage.codex")
 
@@ -122,8 +121,7 @@ final class UsageStore: ObservableObject {
         scanQueue.async { [weak self] in
             guard let self = self else { return }
             self.claude.scan()
-            self.codex.scan()
-            let merged = self.claude.events + self.codex.events
+            let merged = self.claude.events
             DispatchQueue.main.async {
                 self.events = merged
                 self.lastUpdated = Date()
@@ -195,16 +193,10 @@ final class UsageStore: ObservableObject {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
         var byDay: [Date: DayBar] = [:]
-        for e in events {
+        for e in events where e.tool == .claude {
             let day = cal.startOfDay(for: e.date)
             var bar = byDay[day] ?? DayBar(day: day)
-            if e.tool == .claude {
-                bar.claudeCost += e.cost
-                bar.claudeTokens += e.counts.total
-            } else {
-                bar.codexCost += e.cost
-                bar.codexTokens += e.counts.total
-            }
+            bar.claudeTokens += e.counts.total
             byDay[day] = bar
         }
         var out: [DayBar] = []

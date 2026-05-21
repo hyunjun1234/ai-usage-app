@@ -29,7 +29,6 @@ struct UsageEvent {
     let tool: Tool
     let model: String
     let counts: TokenCounts
-    var cost: Double { Pricing.cost(counts, model: model, tool: tool) }
 }
 
 /// The two limit windows both tools share.
@@ -55,13 +54,10 @@ struct LimitWindow: Identifiable {
     }
 }
 
-/// One day's totals for the trend chart.
+/// One day's Claude token total for the trend chart.
 struct DayBar: Identifiable {
     let day: Date
-    var claudeCost = 0.0
     var claudeTokens = 0
-    var codexCost = 0.0
-    var codexTokens = 0
     var id: Date { day }
 }
 

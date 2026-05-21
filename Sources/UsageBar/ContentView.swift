@@ -31,7 +31,7 @@ struct ContentView: View {
             quipBanner
             if store.toolFilter.showsClaude { claudeCard }
             if store.toolFilter.showsCodex { codexCard }
-            chartSection
+            if store.toolFilter.showsClaude { chartSection }
         }
         .padding(14)
         .frame(width: 320)
@@ -136,30 +136,20 @@ struct ContentView: View {
                 if let day = hoveredDay {
                     Text(hoverText(day))
                         .font(.caption).foregroundStyle(.primary)
-                    Spacer()
                 } else {
-                    Text("최근 14일 · 추정 비용")
+                    Text("최근 14일 · Claude 토큰")
                         .font(.caption).foregroundStyle(.secondary)
-                    Spacer()
-                    legendDot(Theme.claude, "Claude")
-                    legendDot(Theme.codex, "Codex")
                 }
+                Spacer()
             }
             .frame(height: 14)
             DailyBarChart(bars: store.snapshot.dayBars, hovered: $hoveredDay)
         }
     }
 
-    private func legendDot(_ color: Color, _ label: String) -> some View {
-        HStack(spacing: 3) {
-            Circle().fill(color).frame(width: 7, height: 7)
-            Text(label).font(.caption2).foregroundStyle(.secondary)
-        }
-    }
-
     private func hoverText(_ day: DayBar) -> String {
-        func tok(_ n: Int) -> String { n == 0 ? "0" : "\(Fmt.compact(n))토큰" }
-        return "\(Fmt.hoverDay(day.day)) · Claude \(tok(day.claudeTokens)) · Codex \(tok(day.codexTokens))"
+        let tok = day.claudeTokens == 0 ? "0" : "\(Fmt.compact(day.claudeTokens))토큰"
+        return "\(Fmt.hoverDay(day.day)) · Claude \(tok)"
     }
 
     // MARK: Footer
@@ -275,15 +265,12 @@ struct DailyBarChart: View {
     private let height: CGFloat = 58
 
     var body: some View {
-        let maxCost = max(bars.map { max($0.claudeCost, $0.codexCost) }.max() ?? 0, 0.01)
+        let maxTokens = Double(max(bars.map { $0.claudeTokens }.max() ?? 0, 1))
         HStack(alignment: .bottom, spacing: 3) {
             ForEach(bars) { day in
                 VStack(spacing: 0) {
                     Spacer(minLength: 0)
-                    HStack(alignment: .bottom, spacing: 2) {
-                        bar(day.claudeCost / maxCost, Theme.claude)
-                        bar(day.codexCost / maxCost, Theme.codex)
-                    }
+                    bar(Double(day.claudeTokens) / maxTokens)
                 }
                 .frame(width: 18, height: height)
                 .background(
@@ -300,9 +287,9 @@ struct DailyBarChart: View {
         .frame(height: height, alignment: .bottom)
     }
 
-    private func bar(_ fraction: Double, _ color: Color) -> some View {
-        RoundedRectangle(cornerRadius: 1.5)
-            .fill(color)
-            .frame(width: 6, height: max(2, CGFloat(min(max(fraction, 0), 1)) * height))
+    private func bar(_ fraction: Double) -> some View {
+        RoundedRectangle(cornerRadius: 2)
+            .fill(Theme.claude)
+            .frame(width: 10, height: max(2, CGFloat(min(max(fraction, 0), 1)) * height))
     }
 }

@@ -23,7 +23,6 @@ enum Theme {
 
 struct ContentView: View {
     @ObservedObject var store: UsageStore
-    @State private var hoveredDay: DayBar?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 11) {
@@ -31,7 +30,6 @@ struct ContentView: View {
             quipBanner
             if store.toolFilter.showsClaude { claudeCard }
             if store.toolFilter.showsCodex { codexCard }
-            if store.toolFilter.showsClaude { chartSection }
         }
         .padding(14)
         .frame(width: 320)
@@ -127,33 +125,6 @@ struct ContentView: View {
                         windows: snap.codexWindows,
                         note: note)
     }
-
-    // MARK: Chart
-
-    private var chartSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                if let day = hoveredDay {
-                    Text(hoverText(day))
-                        .font(.caption).foregroundStyle(.primary)
-                } else {
-                    Text("최근 14일 · Claude 토큰")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                Spacer()
-            }
-            .frame(height: 14)
-            DailyBarChart(bars: store.snapshot.dayBars, hovered: $hoveredDay)
-        }
-    }
-
-    private func hoverText(_ day: DayBar) -> String {
-        let tok = day.claudeTokens == 0 ? "0" : "\(Fmt.compact(day.claudeTokens))토큰"
-        return "\(Fmt.hoverDay(day.day)) · Claude \(tok)"
-    }
-
-    // MARK: Footer
-
 }
 
 /// One tool card: name + badge + two limit windows (5시간 / 주간).
@@ -254,42 +225,5 @@ struct GaugeBar: View {
             }
         }
         .frame(height: 7)
-    }
-}
-
-/// 14-day grouped bar chart. Bars sit on a shared baseline; hovering a day's
-/// column reports it via `hovered`.
-struct DailyBarChart: View {
-    let bars: [DayBar]
-    @Binding var hovered: DayBar?
-    private let height: CGFloat = 58
-
-    var body: some View {
-        let maxTokens = Double(max(bars.map { $0.claudeTokens }.max() ?? 0, 1))
-        HStack(alignment: .bottom, spacing: 3) {
-            ForEach(bars) { day in
-                VStack(spacing: 0) {
-                    Spacer(minLength: 0)
-                    bar(Double(day.claudeTokens) / maxTokens)
-                }
-                .frame(width: 18, height: height)
-                .background(
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(hovered?.day == day.day ? Color.primary.opacity(0.10) : Color.clear)
-                )
-                .contentShape(Rectangle())
-                .onHover { inside in
-                    if inside { hovered = day }
-                    else if hovered?.day == day.day { hovered = nil }
-                }
-            }
-        }
-        .frame(height: height, alignment: .bottom)
-    }
-
-    private func bar(_ fraction: Double) -> some View {
-        RoundedRectangle(cornerRadius: 2)
-            .fill(Theme.claude)
-            .frame(width: 10, height: max(2, CGFloat(min(max(fraction, 0), 1)) * height))
     }
 }

@@ -34,7 +34,6 @@ enum RefreshInterval: Int, CaseIterable {
 struct Snapshot {
     var claudeWindows: [LimitWindow] = []
     var codexWindows: [LimitWindow] = []
-    var dayBars: [DayBar] = []
     var quip = Quip(text: "불러오는 중…", symbol: "hourglass", level: 0)
     var lastUpdated: Date?
     var codexOK = true
@@ -68,15 +67,12 @@ final class UsageStore: ObservableObject {
         didSet { UserDefaults.standard.set(refreshInterval.rawValue, forKey: "refreshInterval") }
     }
 
-    private var events: [UsageEvent] = []          // Claude only — for the 14-day chart
     private var codexLimits: CodexLimitsResult?
     private var codexFetchOK = true
     private var lastUpdated: Date?
     private var codexFetchedAt: Date?
     private var codexInFlight = false
 
-    private let claude = ClaudeParser()
-    private let scanQueue = DispatchQueue(label: "aiusage.scan")
     private let codexQueue = DispatchQueue(label: "aiusage.codex")
 
     private let claudeWeb = ClaudeWebSession()
@@ -118,16 +114,6 @@ final class UsageStore: ObservableObject {
     // MARK: - Refresh
 
     func refresh(force: Bool = false) {
-        scanQueue.async { [weak self] in
-            guard let self = self else { return }
-            self.claude.scan()
-            let merged = self.claude.events
-            DispatchQueue.main.async {
-                self.events = merged
-                self.lastUpdated = Date()
-                self.recompute()
-            }
-        }
         // Cadence is driven by the menu-bar timer; in-flight guards prevent overlap.
         if toolFilter.showsCodex { refreshCodexLimits() }
         if toolFilter.showsClaude { claudeWeb.refreshUsage() }
@@ -170,14 +156,13 @@ final class UsageStore: ObservableObject {
     // MARK: - Derived snapshot
 
     private func recompute() {
+        lastUpdated = Date()
         let cWindows = claudeReal.map { [$0.fiveHour, $0.weekly] } ?? []
         let xWindows = [codexLimits?.fiveHour, codexLimits?.weekly].compactMap { $0 }
-        let bars = dailySeries(days: 14)
         let maxPct = (cWindows + xWindows).map { $0.usedPercent }.max()
         snapshot = Snapshot(
             claudeWindows: cWindows,
             codexWindows: xWindows,
-            dayBars: bars,
             quip: makeQuip(maxPct),
             lastUpdated: lastUpdated,
             codexOK: codexFetchOK,
@@ -185,26 +170,6 @@ final class UsageStore: ObservableObject {
             codexPlan: codexLimits?.planType,
             claudeLoggedOut: claudeLoggedOut,
             claudePlan: claudePlan)
-    }
-
-    // MARK: - Trend chart
-
-    private func dailySeries(days: Int) -> [DayBar] {
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: Date())
-        var byDay: [Date: DayBar] = [:]
-        for e in events where e.tool == .claude {
-            let day = cal.startOfDay(for: e.date)
-            var bar = byDay[day] ?? DayBar(day: day)
-            bar.claudeTokens += e.counts.total
-            byDay[day] = bar
-        }
-        var out: [DayBar] = []
-        for i in stride(from: days - 1, through: 0, by: -1) {
-            let day = cal.date(byAdding: .day, value: -i, to: today) ?? today
-            out.append(byDay[day] ?? DayBar(day: day))
-        }
-        return out
     }
 
     // MARK: - Quip

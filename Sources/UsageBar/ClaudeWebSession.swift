@@ -22,6 +22,14 @@ final class ClaudeWebSession: NSObject, WKNavigationDelegate, WKUIDelegate, NSWi
     /// (a real login). Opening the window while already logged in keeps it
     /// open so the user can browse claude.ai.
     private var sawLoggedOutInWindow = false
+    /// claude.ai sits behind a Cloudflare "managed challenge". The web view can
+    /// pass it, but only on a *fresh* load (which mints a short-lived
+    /// cf_clearance cookie). When that clearance expires the usage fetch starts
+    /// getting 403 challenges, so we reload the page to re-solve it. `pending…`
+    /// marks a reload whose `didFinish` should re-fetch; `lastChallengeReload`
+    /// throttles reloads so a perpetually-failing challenge can't spin the view.
+    private var pendingRetryAfterReload = false
+    private var lastChallengeReload: Date?
 
     // Present as real Safari — Google blocks OAuth from webviews whose UA
     // lacks the Version/Safari tokens.
@@ -65,6 +73,12 @@ final class ClaudeWebSession: NSObject, WKNavigationDelegate, WKUIDelegate, NSWi
     /// the window stays open (they explicitly wanted to look at claude.ai).
     func showLoginWindow() {
         sawLoggedOutInWindow = false
+        lastChallengeReload = nil
+        pendingRetryAfterReload = false
+        // Always reload so the window shows a fresh, solvable claude.ai page
+        // (the Cloudflare challenge or the logged-in home) — never a stale,
+        // expired challenge that renders as a blank white window.
+        reloadHome()
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
         loginPollTimer?.invalidate()
@@ -76,6 +90,25 @@ final class ClaudeWebSession: NSObject, WKNavigationDelegate, WKUIDelegate, NSWi
     private func stopLoginPoll() {
         loginPollTimer?.invalidate()
         loginPollTimer = nil
+    }
+
+    /// Reloads claude.ai from scratch so the Cloudflare challenge runs fresh.
+    private func reloadHome() {
+        hasLoaded = false
+        webView.load(URLRequest(url: URL(string: "https://claude.ai/")!))
+    }
+
+    /// On a Cloudflare challenge, reload to mint a fresh cf_clearance, then retry
+    /// the usage fetch once the page finishes. Throttled to once per 20s (so a
+    /// challenge that never solves can't spin the view, yet we keep retrying on
+    /// later cycles), and skipped while the login window is open so we never
+    /// wipe out a sign-in the user is typing.
+    private func reloadAndRetry() {
+        guard !window.isVisible else { return }
+        if let last = lastChallengeReload, Date().timeIntervalSince(last) < 20 { return }
+        lastChallengeReload = Date()
+        pendingRetryAfterReload = true
+        reloadHome()
     }
 
     func windowWillClose(_ notification: Notification) {
@@ -125,6 +158,13 @@ final class ClaudeWebSession: NSObject, WKNavigationDelegate, WKUIDelegate, NSWi
         }
         try {
           const o = await fetch('/api/organizations', {credentials:'include', headers:H, cache:'no-store'});
+          const ct = (o.headers.get('content-type') || '').toLowerCase();
+          // A Cloudflare managed challenge answers with 403 + an HTML interstitial
+          // ("Just a moment…"), not the JSON a real auth failure returns. Treat
+          // it as a challenge (reload to re-solve), not as a logout.
+          if (o.status === 403 && (o.headers.get('cf-mitigated') || ct.includes('text/html'))) {
+            return JSON.stringify({state:'challenge'});
+          }
           if (o.status === 401 || o.status === 403) return JSON.stringify({state:'loggedOut'});
           if (!o.ok) return JSON.stringify({state:'error', detail:'orgs ' + o.status});
           const orgs = await o.json();
@@ -153,9 +193,8 @@ final class ClaudeWebSession: NSObject, WKNavigationDelegate, WKUIDelegate, NSWi
                     finish(.error("parse")); return
                 }
                 switch state {
-                case "loggedOut":
-                    finish(.loggedOut)
                 case "ok":
+                    self.lastChallengeReload = nil
                     if let usage = obj["usage"] as? [String: Any],
                        let windows = ClaudeWebSession.parse(usage) {
                         let plan = obj["plan"] as? String
@@ -163,6 +202,14 @@ final class ClaudeWebSession: NSObject, WKNavigationDelegate, WKUIDelegate, NSWi
                     } else {
                         finish(.error("usage parse"))
                     }
+                case "loggedOut":
+                    finish(.loggedOut)
+                case "challenge":
+                    // Cloudflare clearance expired — reload to re-solve, keep the
+                    // last-known numbers (.error is treated as transient upstream).
+                    NSLog("AIUsage: claude.ai Cloudflare challenge — reloading to refresh clearance")
+                    self.reloadAndRetry()
+                    finish(.error("challenge"))
                 default:
                     finish(.error((obj["detail"] as? String) ?? "error"))
                 }
@@ -189,6 +236,29 @@ final class ClaudeWebSession: NSObject, WKNavigationDelegate, WKUIDelegate, NSWi
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         hasLoaded = true
+        if pendingRetryAfterReload {
+            pendingRetryAfterReload = false
+            // Give the Cloudflare challenge a moment to settle, then re-fetch.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                self?.refreshUsage()
+            }
+        }
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!,
+                 withError error: Error) {
+        NSLog("AIUsage: claude.ai load failed — \(error.localizedDescription)")
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        NSLog("AIUsage: claude.ai navigation failed — \(error.localizedDescription)")
+    }
+
+    /// The WebContent process can be killed when the app sits in the background
+    /// (menu-bar app, window hidden), leaving a blank view. Reload to recover.
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        NSLog("AIUsage: claude.ai web content process terminated — reloading")
+        reloadHome()
     }
 
     // MARK: - WKUIDelegate (OAuth popups, e.g. "Continue with Google")
